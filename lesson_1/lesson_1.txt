@@ -1,0 +1,35 @@
+Assignment:
+
+Imagine that you are hired to enable data analytics; where would you start? How would you go about gathering requirements?
+ Hint: Think backward from what the business may need.
+
+
+Solution 
+
+Objective 
+    - Enable data analytics through dashboards and self-serve solutions for data analytics
+
+Summary 
+    - Data Source -> Gathering -> Modelling -> End User Access -> Continuous Testing/Monitoring
+
+    - As clearly described here - https://www.startdataengineering.com/post/n-job-reponsibilities-of-a-data-engineer/, a key part of enabling analytics in any organisation is the movement of data from one system to the other. 
+    - It also includes making sure that the data is in formats that are relatively easier to handle for end users.
+
+Data Sources 
+    - Identify the data sources and gather the specs including pros and cons of various options to be used in data ingestion 
+
+Data Collection/Gathering
+    - Prepare ELT for continuous and scheduled data ingestion, including transformation from raw formats into formats and structures that are easier to handle
+    - Partitioning and loading into storage 
+    
+Data Modelling in Warehouse   
+    - Modelling the dimension and fact tables 
+ 
+Visualisation and End User Access   
+    - In some cases, data engineers could be involved in creating Visualisations. In most cases they ensure visualisation tools are able to connect to the Data Warehouse/Store.
+    - They also ensure that applications that would require access to data store for near-realtime processing are enabled. 
+
+
+
+
+
