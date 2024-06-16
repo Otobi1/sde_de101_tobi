@@ -1,0 +1,650 @@
+
+-- folder for lesson 2 
+
+-- Q1 
+
+D select 
+      l_returnflag,
+      l_linestatus,
+      sum(l_quantity) as sum_qty,
+      sum(l_extendedprice) as sum_base_price,
+      sum(l_extendedprice * (1 - l_discount)) as sum_disc_price,
+      sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge,
+      avg(l_quantity) as avg_qty,
+      avg(l_extendedprice) as avg_price,
+      avg(l_discount) as avg_disc,
+      count(*) as count_order
+  from 
+      lineitem
+  where 
+      cast(l_shipdate as date) <= date '1998-12-01' - interval '90' day
+  group by 
+      l_returnflag, l_linestatus
+  order by 
+      l_returnflag, l_linestatus;
+        
+100% ▕████████████████████████████████████████████████████████████▏ 
+┌──────────────┬──────────────┬────────────┬────────────────────┬────────────────────┬────────────────────┬────────────────────┬────────────────────┬──────────────────────┬─────────────┐
+│ l_returnflag │ l_linestatus │  sum_qty   │   sum_base_price   │   sum_disc_price   │     sum_charge     │      avg_qty       │     avg_price      │       avg_disc       │ count_order │
+│   varchar    │   varchar    │   double   │       double       │       double       │       double       │       double       │       double       │        double        │    int64    │
+├──────────────┼──────────────┼────────────┼────────────────────┼────────────────────┼────────────────────┼────────────────────┼────────────────────┼──────────────────────┼─────────────┤
+│ A            │ F            │ 37734107.0 │  56586554400.72973 │  53758257134.86961 │ 55909065222.828224 │ 25.522005853257337 │ 38273.129734621485 │  0.04998529583845987 │     1478493 │
+│ N            │ F            │   991417.0 │ 1487504710.3800015 │  1413082168.054098 │  1469649223.194375 │ 25.516471920522985 │  38284.46776084835 │  0.05009342667421457 │       38854 │
+│ N            │ O            │ 74476040.0 │ 111701729697.74051 │ 106118230307.60548 │  110367043872.4971 │  25.50222676958499 │ 38249.117988908445 │  0.04999658605366875 │     2920374 │
+│ R            │ F            │ 37719753.0 │  56568041380.89969 │ 53741292684.604164 │  55889619119.83244 │  25.50579361269077 │  38250.85462609945 │ 0.050009405830189244 │     1478870 │
+└──────────────┴──────────────┴────────────┴────────────────────┴────────────────────┴────────────────────┴────────────────────┴────────────────────┴──────────────────────┴─────────────┘
+
+
+--- Q2 
+
+	D select
+      s_acctbal,
+      s_name,
+      n_name,
+      p_partkey,
+      p_mfgr,
+      s_address,
+      s_phone,
+      s_comment
+  from
+      part
+      join partsupp on p_partkey = ps_partkey
+      join supplier on s_suppkey = ps_suppkey
+      join nation on s_nationkey = n_nationkey
+      join region on n_regionkey = r_regionkey
+  where
+      p_size = 15
+      and p_type like '%BRASS'
+      and r_name = 'EUROPE'
+      and ps_supplycost = (
+          select
+              min(ps_supplycost)
+          from
+              partsupp
+              join supplier on s_suppkey = ps_suppkey
+              join nation on s_nationkey = n_nationkey
+              join region on n_regionkey = r_regionkey
+          where
+              p_partkey = ps_partkey
+              and r_name = 'EUROPE'
+      )
+  order by
+      s_acctbal desc,
+      n_name,
+      s_name,
+      p_partkey
+  limit 100 ;
+
+
+-- q3 
+
+D select
+      l_orderkey,
+      sum(l_extendedprice * (1 - l_discount)) as revenue,
+      o_orderdate,
+      o_shippriority
+  from
+      customer
+      join orders on c_custkey = o_custkey
+      join lineitem on l_orderkey = o_orderkey
+  where
+      c_mktsegment = 'BUILDING'
+      and cast(o_orderdate as date) < date '1995-03-15'
+      and cast(l_shipdate as date) > date '1995-03-15'
+  group by
+      l_orderkey,
+      o_orderdate,
+      o_shippriority
+  order by
+      revenue desc,
+      o_orderdate;
+	  
+
+-- q4 
+
+D select
+      o_orderpriority,
+      count(*) as order_count
+  from
+      orders
+  where
+      cast(o_orderdate as date) >= date '1993-07-01'
+      and cast(o_orderdate as date) < date '1993-07-01' + interval '3 months'
+      and exists (
+          select
+              *
+          from
+              lineitem
+          where
+              l_orderkey = o_orderkey
+              and cast(l_commitdate as date) < cast(l_receiptdate as date)
+      )
+  group by
+      o_orderpriority
+  order by
+      o_orderpriority;
+	  
+	  
+-- q5 
+
+D select
+      n.n_name,
+      sum(l.l_extendedprice * (1 - l.l_discount)) as revenue
+  from
+      customer c
+      join orders o on c.c_custkey = o.o_custkey
+      join lineitem l on o.o_orderkey = l.l_orderkey
+      join supplier s on l.l_suppkey = s.s_suppkey
+      join nation n on c.c_nationkey = n.n_nationkey
+      join region r on n.n_regionkey = r.r_regionkey
+  where
+      r.r_name = 'ASIA'
+      and cast(o.o_orderdate as date) >= date '1994-01-01'
+      and cast(o.o_orderdate as date) < date '1994-01-01' + interval '1' year
+  group by
+      n.n_name
+  order by
+      revenue desc;
+	  
+	  
+-- q6 
+
+D select
+      sum(l_extendedprice * l_discount) as revenue
+  from
+      lineitem
+  where
+      cast(l_shipdate as date) >= date '1994-01-01'
+      and cast(l_shipdate as date) < date '1994-01-01' + interval '1' year
+      and l_discount between 0.05 and 0.07
+      and l_quantity < 24;
+	  
+
+-- q7 
+
+D select
+      supp_nation,
+      cust_nation,
+      l_year,
+      sum(volume) as revenue
+  from (
+      select
+          n1.n_name as supp_nation,
+          n2.n_name as cust_nation,
+          extract(year from cast(l_shipdate as date)) as l_year,
+          l_extendedprice * (1 - l_discount) as volume
+      from
+          supplier s
+          join lineitem l on s.s_suppkey = l.l_suppkey
+          join orders o on o.o_orderkey = l.l_orderkey
+          join customer c on c.c_custkey = o.o_custkey
+          join nation n1 on s.s_nationkey = n1.n_nationkey
+          join nation n2 on c.c_nationkey = n2.n_nationkey
+      where
+          (
+              (n1.n_name = 'FRANCE' and n2.n_name = 'GERMANY')
+              or (n1.n_name = 'GERMANY' and n2.n_name = 'FRANCE')
+          )
+          and cast(l.l_shipdate as date) between date '1995-01-01' and date '1996-12-31'
+  ) as shipping
+  group by
+      supp_nation,
+      cust_nation,
+      l_year
+  order by
+      supp_nation,
+      cust_nation,
+      l_year;
+	  
+	  
+	  
+-- q8 
+
+D select
+      o_year,
+      sum(case
+          when nation = 'BRAZIL' then volume
+          else 0
+      end) / sum(volume) as mkt_share
+  from (
+      select
+          extract(year from cast(o.o_orderdate as date)) as o_year,
+          l.l_extendedprice * (1 - l.l_discount) as volume,
+          n2.n_name as nation
+      from
+          lineitem l
+          join orders o on l.l_orderkey = o.o_orderkey
+          join customer c on o.o_custkey = c.c_custkey
+          join nation n1 on c.c_nationkey = n1.n_nationkey
+          join region r on n1.n_regionkey = r.r_regionkey
+          join supplier s on l.l_suppkey = s.s_suppkey
+          join nation n2 on s.s_nationkey = n2.n_nationkey
+          join part p on l.l_partkey = p.p_partkey
+      where
+          r.r_name = 'AMERICA'
+          and cast(o.o_orderdate as date) between date '1995-01-01' and date '1996-12-31'
+          and p.p_type = 'ECONOMY ANODIZED STEEL'
+  ) as all_nations
+  group by
+      o_year
+  order by
+      o_year;
+	  
+	  
+-- q9 
+
+select
+    nation,
+    o_year,
+    sum(amount) as sum_profit
+from (
+    select
+        n.n_name as nation,
+        extract(year from cast(o.o_orderdate as date)) as o_year,
+        l.l_extendedprice * (1 - l.l_discount) - ps.ps_supplycost * l.l_quantity as amount
+    from
+        lineitem l
+        join orders o on l.l_orderkey = o.o_orderkey
+        join part p on l.l_partkey = p.p_partkey and p.p_name like '%green%'
+        join partsupp ps on l.l_suppkey = ps.ps_suppkey and l.l_partkey = ps.ps_partkey
+        join supplier s on l.l_suppkey = s.s_suppkey
+        join nation n on s.s_nationkey = n.n_nationkey
+    ) as profit
+group by
+    nation,
+    o_year
+order by
+    nation,
+    o_year desc;
+
+
+-- q10 
+
+select
+      c_custkey,
+      c_name,
+      sum(l.l_extendedprice * (1 - l.l_discount)) as revenue,
+      c.c_acctbal,
+      n.n_name as n_name,
+      c.c_address,
+      c.c_phone,
+      c.c_comment
+  from
+      customer c
+      join orders o on c.c_custkey = o.o_custkey
+      join lineitem l on o.o_orderkey = l.l_orderkey
+      join nation n on c.c_nationkey = n.n_nationkey
+  where
+      cast(o.o_orderdate as date) >= date '1993-10-01'
+      and cast(o.o_orderdate as date) < date '1993-10-01' + interval '3' month
+      and l.l_returnflag = 'R'
+  group by
+      c.c_custkey,
+      c.c_name,
+      c.c_acctbal,
+      c.c_phone,
+      n.n_name,
+      c.c_address,
+      c.c_comment
+  order by
+      revenue desc;
+	  
+
+-- q11
+
+D select
+      ps.ps_partkey,
+      sum(ps.ps_supplycost * ps.ps_availqty) as value
+  from
+      partsupp ps
+      join supplier s on ps.ps_suppkey = s.s_suppkey
+      join nation n on s.s_nationkey = n.n_nationkey
+  where
+      n.n_name = 'GERMANY'
+  group by
+      ps.ps_partkey
+  having
+      sum(ps.ps_supplycost * ps.ps_availqty) > (
+          select
+              sum(ps_supplycost * ps_availqty) * 0.0001
+          from
+              partsupp ps
+              join supplier s on ps.ps_suppkey = s.s_suppkey
+              join nation n on s.s_nationkey = n.n_nationkey
+          where
+              n.n_name = 'GERMANY'
+      )
+  order by
+      value desc;
+	  
+-- q12 
+
+D select
+      l_shipmode,
+      sum(case
+          when o_orderpriority ='1-URGENT' or o_orderpriority ='2-HIGH'
+          then 1
+          else 0
+      end) as high_line_count,
+      sum(case
+          when o_orderpriority <> '1-URGENT' and o_orderpriority <> '2-HIGH'
+          then 1
+          else 0
+      end) as low_line_count
+  from
+      lineitem l
+      join orders o on l.l_orderkey = o.o_orderkey
+  where
+      l.l_shipmode in ('MAIL', 'SHIP')
+      and cast(l.l_commitdate as date) < cast(l.l_receiptdate as date)
+      and cast(l.l_shipdate as date) < cast(l.l_commitdate as date)
+      and cast(l.l_receiptdate as date) >= date '1994-01-01'
+      and cast(l.l_receiptdate as date) < date '1995-01-01' -- Changed to end of year
+  group by
+      l.l_shipmode
+  order by
+      l_shipmode;
+	  
+-- q13 
+
+select
+    c_count,
+    count(*) as custdist
+from (
+    select
+        c_custkey,
+        count(o.o_orderkey) as c_count
+    from
+        customer c
+        left outer join orders o on c.c_custkey = o.o_custkey
+                                  and o.o_comment not like '%special%requests%'
+    group by
+        c.c_custkey
+) as c_orders
+group by
+    c_count
+order by
+    custdist desc,
+    c_count desc;
+
+-- q14 
+
+select
+    100.00 * sum(case
+        when p.p_type like 'PROMO%'
+        then l.l_extendedprice*(1-l.l_discount)
+        else 0
+    end) / sum(l.l_extendedprice * (1 - l.l_discount)) as promo_revenue
+from
+    lineitem l
+    join part p on l.l_partkey = p.p_partkey
+where
+    cast(l.l_shipdate as date) >= date '1995-09-01'
+    and cast(l.l_shipdate as date) < date '1995-09-01' + interval '1' month;
+
+
+-- q15 
+
+D CREATE VIEW revenue_STREAM_ID (supplier_no, total_revenue) AS
+  SELECT
+      l_suppkey,
+      SUM(l_extendedprice * (1 - l_discount))
+  FROM
+      lineitem
+  WHERE
+      CAST(l_shipdate AS DATE) >= DATE '1996-01-01'
+      AND CAST(l_shipdate AS DATE) < DATE '1996-01-01' + INTERVAL '3' MONTH
+  GROUP BY
+      l_suppkey;
+D .mode csv 
+D .once q15.csv
+D SELECT
+      s.s_suppkey,
+      s.s_name,
+      s.s_address,
+      s.s_phone,
+      r.total_revenue
+  FROM
+      supplier s
+      JOIN revenue_STREAM_ID r ON s.s_suppkey = r.supplier_no
+  WHERE
+      r.total_revenue = (
+          SELECT
+              MAX(total_revenue)
+          FROM
+              revenue_STREAM_ID
+      )
+  ORDER BY
+      s.s_suppkey;
+100% ▕████████████████████████████████████████████████████████████▏ 
+D DROP VIEW revenue_STREAM_ID;
+
+
+-- q16 
+
+D select
+      p_brand,
+      p_type,
+      p_size,
+      count(distinct ps.ps_suppkey) as supplier_cnt
+  from
+      partsupp ps
+      join part p on ps.ps_partkey = p.p_partkey
+  where
+      p.p_brand <> 'Brand#5'
+      and p.p_type not like 'MEDIUM POLISHED%'
+      and p.p_size in (49, 14, 23, 45, 19, 3, 36, 9)
+      and ps.ps_suppkey not in (
+          select
+              s_suppkey
+          from
+              supplier
+          where
+              s_comment like '%Customer%Complaints%'
+      )
+  group by
+      p.p_brand,
+      p.p_type,
+      p.p_size
+  order by
+      supplier_cnt desc,
+      p.p_brand,
+      p.p_type,
+      p.p_size;
+	  
+	  
+-- q17 
+
+D SELECT
+      SUM(l.l_extendedprice) / 7.0 AS avg_yearly
+  FROM
+      lineitem l
+      JOIN part p ON l.l_partkey = p.p_partkey
+  WHERE
+      p.p_brand = 'Brand#23'
+      AND p.p_container = 'MED BOX'
+      AND l.l_quantity < (
+          SELECT
+              0.2 * AVG(l2.l_quantity)
+          FROM
+              lineitem l2
+          WHERE
+              l2.l_partkey = p.p_partkey
+      );
+	  
+-- q18 
+
+D SELECT
+      c.c_name,
+      c.c_custkey,
+      o.o_orderkey,
+      CAST(o.o_orderdate AS DATE) AS o_orderdate,
+      o.o_totalprice,
+      SUM(l.l_quantity) AS total_quantity
+  FROM
+      customer c
+      JOIN orders o ON c.c_custkey = o.o_custkey
+      JOIN lineitem l ON o.o_orderkey = l.l_orderkey
+  WHERE
+      o.o_orderkey IN (
+          SELECT
+              l_orderkey
+          FROM
+              lineitem
+          GROUP BY
+              l_orderkey
+          HAVING
+              SUM(l_quantity) > 300
+      )
+  GROUP BY
+      c.c_name,
+      c.c_custkey,
+      o.o_orderkey,
+      o.o_orderdate,
+      o.o_totalprice
+  ORDER BY
+      o.o_totalprice DESC,
+      o.o_orderdate;
+	  
+-- q19 
+
+D SELECT
+      SUM(l.l_extendedprice * (1 - l.l_discount)) AS revenue
+  FROM
+      lineitem l
+      JOIN part p ON l.l_partkey = p.p_partkey
+  WHERE
+      (
+          (p.p_brand = 'Brand#12'
+           AND p.p_container IN ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')
+           AND l.l_quantity BETWEEN 1 AND 11  -- 1 to 1 + 10
+           AND p.p_size BETWEEN 1 AND 5
+           AND l.l_shipmode IN ('AIR', 'AIR REG')
+           AND l.l_shipinstruct = 'DELIVER IN PERSON')
+  
+          OR
+          
+          (p.p_brand = 'Brand#23'
+           AND p.p_container IN ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')
+           AND l.l_quantity BETWEEN 10 AND 20  -- 10 to 10 + 10
+           AND p.p_size BETWEEN 1 AND 10
+           AND l.l_shipmode IN ('AIR', 'AIR REG')
+           AND l.l_shipinstruct = 'DELIVER IN PERSON')
+  
+          OR
+          
+          (p.p_brand = 'Brand#34'
+           AND p.p_container IN ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')
+           AND l.l_quantity BETWEEN 20 AND 30  -- 20 to 20 + 10
+           AND p.p_size BETWEEN 1 AND 15
+           AND l.l_shipmode IN ('AIR', 'AIR REG')
+           AND l.l_shipinstruct = 'DELIVER IN PERSON')
+      );
+	  
+	  
+-- q20 
+
+D SELECT
+      s.s_name,
+      s.s_address
+  FROM
+      supplier s
+      JOIN nation n ON s.s_nationkey = n.n_nationkey
+  WHERE
+      s.s_suppkey IN (
+          SELECT
+              ps.ps_suppkey
+          FROM
+              partsupp ps
+              JOIN part p ON ps.ps_partkey = p.p_partkey
+          WHERE
+              p.p_name LIKE 'forest%'
+              AND ps.ps_availqty > (
+                  SELECT
+                      0.5 * SUM(l.l_quantity)
+                  FROM
+                      lineitem l
+                  WHERE
+                      l.l_partkey = ps.ps_partkey
+                      AND l.l_suppkey = ps.ps_suppkey
+                      AND CAST(l.l_shipdate AS DATE) >= DATE '1994-01-01'
+                      AND CAST(l.l_shipdate AS DATE) < DATE '1994-01-01' + INTERVAL '1' YEAR
+              )
+      )
+      AND n.n_name = 'CANADA'
+  ORDER BY
+      s.s_name;
+	  
+	  
+-- q21 
+
+D SELECT
+      s.s_name,
+      COUNT(*) AS numwait
+  FROM
+      supplier s
+      JOIN lineitem l1 ON s.s_suppkey = l1.l_suppkey
+      JOIN orders o ON l1.l_orderkey = o.o_orderkey
+      JOIN nation n ON s.s_nationkey = n.n_nationkey
+  WHERE
+      o.o_orderstatus = 'F'
+      AND l1.l_receiptdate > l1.l_commitdate
+      AND EXISTS (
+          SELECT 1
+          FROM lineitem l2
+          WHERE l2.l_orderkey = l1.l_orderkey
+            AND l2.l_suppkey <> l1.l_suppkey
+      )
+      AND NOT EXISTS (
+          SELECT 1
+          FROM lineitem l3
+          WHERE l3.l_orderkey = l1.l_orderkey
+            AND l3.l_suppkey <> l1.l_suppkey
+            AND l3.l_receiptdate > l3.l_commitdate
+      )
+      AND n.n_name = 'SAUDI ARABIA'
+  GROUP BY
+      s.s_name
+  ORDER BY
+      numwait DESC,
+      s.s_name;
+	  
+	  
+-- q22 
+
+D SELECT
+      cntrycode,
+      COUNT(*) AS numcust,
+      SUM(c_acctbal) AS totacctbal
+  FROM (
+      SELECT
+          SUBSTRING(c_phone FROM 1 FOR 2) AS cntrycode,
+          c_acctbal
+      FROM
+          customer
+      WHERE
+          SUBSTRING(c_phone FROM 1 FOR 2) IN ('13', '31', '23', '29', '30', '18', '17')
+          AND c_acctbal > (
+              SELECT
+                  AVG(c_acctbal)
+              FROM
+                  customer
+              WHERE
+                  c_acctbal > 0.00
+                  AND SUBSTRING(c_phone FROM 1 FOR 2) IN ('13', '31', '23', '29', '30', '18', '17')
+          )
+          AND NOT EXISTS (
+              SELECT
+                  *
+              FROM
+                  orders
+              WHERE
+                  o_custkey = c_custkey
+          )
+  ) AS custsale
+  GROUP BY
+      cntrycode
+  ORDER BY
+      cntrycode;
+	  
+	  
